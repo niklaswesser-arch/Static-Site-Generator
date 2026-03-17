@@ -29,6 +29,32 @@ def generate_page(from_path, template_path, dest_path):
     print(f"Page generated at {dest_path}")
 
 
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+    if not os.path.exists(dir_path_content):
+        raise ValueError(f"Content directory does not exist: {dir_path_content}")
+    
+    items = os.listdir(dir_path_content)
+    
+    for item in items:
+        from_path = os.path.join(dir_path_content, item)
+        
+        if os.path.isfile(from_path):
+            if item.endswith('.md'):
+                html_filename = item.replace('.md', '.html')
+                dest_path = os.path.join(dest_dir_path, html_filename)
+                
+                generate_page(from_path, template_path, dest_path)
+        else:
+            new_dest_dir = os.path.join(dest_dir_path, item)
+            
+            # Skapa katalogen om den inte finns
+            if not os.path.exists(new_dest_dir):
+                os.makedirs(new_dest_dir)
+                print(f"Creating directory: {new_dest_dir}")
+            
+            generate_pages_recursive(from_path, template_path, new_dest_dir)
+
+
 def copy_static_to_public(src="static", dest="public"):
     if os.path.exists(dest):
         print(f"Deleting {dest} directoy...")
@@ -58,10 +84,10 @@ def copy_directory_contents(src, dest):
 def main():
     copy_static_to_public()
 
-    generate_page(
-        from_path="content/index.md",
+    generate_pages_recursive(
+        dir_path_content="content",
         template_path="template.html",
-        dest_path="public/index.html"
+        dest_dir_path="public"
     )
 
     print("\nWebsite generated!")

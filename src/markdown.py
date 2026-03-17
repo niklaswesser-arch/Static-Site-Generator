@@ -1,6 +1,7 @@
 from enum import Enum
 from htmlnode import HTMLNode, ParentNode, LeafNode
-from textnode import text_to_textnodes, text_node_to_html_node
+from textnode import TextNode, TextType, text_node_to_html_node
+from inline import text_to_textnodes
 
 class BlockType(Enum):
     PARAGRAPH = "paragraph"
@@ -11,12 +12,12 @@ class BlockType(Enum):
     ORDERED_LIST = "ordered_list"
 
 def block_to_blocktype(block):
-    lines = block.split("/n")
+    lines = block.split("\n")
 
     if block.startswith(("#", "##", "###", "####", "#####", "######")):
         return BlockType.HEADING
     
-    if block.startswith("'''") and block.endswith("'''"):
+    if block.startswith("```") and block.endswith("```"):
         return BlockType.CODE
     
     if all(line.startswith(">") for line in lines):
@@ -32,7 +33,7 @@ def block_to_blocktype(block):
 
 def is_ordered_list(lines):
     for i, line in enumerate(lines):
-        expected_number = i + 2
+        expected_number = i + 1
         expected_prefix = f"{expected_number}. "
 
         if not line.startswith(expected_prefix):
@@ -71,12 +72,18 @@ def block_to_html_node(block, block_type):
 
 
 def text_to_children(text):
+    if not text or not text.strip():
+        return [LeafNode(None, "")]
+    
     text_nodes = text_to_textnodes(text)
     
     children = []
     for text_node in text_nodes:
         html_node = text_node_to_html_node(text_node)
         children.append(html_node)
+    
+    if not children:
+        return [LeafNode(None, "")]
     
     return children
 
@@ -101,7 +108,7 @@ def heading_to_html_node(block):
     if level < 1 or level > 6:
         raise ValueError(f"Invalid heading level: {level}")
     
-    text = block[level + 1:].strip()
+    text = block[level:].strip()
     
     children = text_to_children(text)
     
@@ -171,3 +178,13 @@ def ordered_list_to_html_node(block):
 def markdown_to_blocks(markdown):
     blocks = markdown.split("\n\n")
     return [block.strip() for block in blocks if block.strip()]
+
+
+def extract_title(markdown):
+    lines = markdown.split("\n")
+    
+    for line in lines:
+        if line.startswith("# "):
+            return line[2:].strip()
+    
+    raise Exception("No h1 header found in markdown")
